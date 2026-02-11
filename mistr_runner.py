@@ -263,6 +263,49 @@ def lift_instance(H: Seq, V: Seq, n_new: int, rng: random.Random) -> Instance:
 # =========================
 Rect = Tuple[Tuple[int,int], Tuple[int,int]]  # ((x1,x2),(y1,y2)) with x1<=x2, y1<=y2
 
+def closed_intersection_box(r1, r2):
+    (x1a,x2a),(y1a,y2a) = r1
+    (x1b,x2b),(y1b,y2b) = r2
+
+    ix1 = max(x1a, x1b)
+    ix2 = min(x2a, x2b)
+    iy1 = max(y1a, y1b)
+    iy2 = min(y2a, y2b)
+
+    if ix1 <= ix2 and iy1 <= iy2:
+        return (ix1, ix2, iy1, iy2)
+    return None
+
+def representative_point(box):
+    ix1, ix2, iy1, iy2 = box
+    return ((ix1 + ix2) / 2, (iy1 + iy2) / 2)
+
+def intersection_constraints_optionA(rects):
+    """
+    One clique constraint per intersection region (touching included).
+    """
+    n = len(rects)
+    cliques = set()
+
+    for i in range(n):
+        for j in range(i+1, n):
+            box = closed_intersection_box(rects[i], rects[j])
+            if box is None:
+                continue
+
+            px, py = representative_point(box)
+
+            S = []
+            for k, ((x1,x2),(y1,y2)) in enumerate(rects):
+                if x1 <= px <= x2 and y1 <= py <= y2:
+                    S.append(k)
+
+            if len(S) >= 2:
+                cliques.add(tuple(sorted(S)))
+
+    return [list(C) for C in cliques]
+
+
 def build_rects(H: Seq, V: Seq) -> List[Rect]:
     X = seq_spans(H); Y = seq_spans(V)
     rects = []
